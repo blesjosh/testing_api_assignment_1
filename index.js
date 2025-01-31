@@ -34,14 +34,41 @@
 
 const express = require('express');
 const { resolve } = require('path');
+const fs = require('fs');
 
 const app = express();
 const port = 3010;
 
 app.use(express.static('static'));
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.sendFile(resolve(__dirname, 'pages/index.html'));
+});
+
+app.post('/students/above-threshold', (req, res) => {
+  const { threshold } = req.body;
+  
+  // Validate input
+  if (typeof threshold !== 'number') {
+    return res.status(400).json({ error: 'Threshold must be a number' });
+  }
+
+  // Read students from data.json
+  try {
+    const studentsData = JSON.parse(fs.readFileSync('./data.json', 'utf8'));
+    
+    // Filter students above threshold
+    const qualifyingStudents = studentsData.filter(student => student.total > threshold);
+
+    // Return formatted response
+    res.json({
+      count: qualifyingStudents.length,
+      students: qualifyingStudents
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error reading student data' });
+  }
 });
 
 app.listen(port, () => {
